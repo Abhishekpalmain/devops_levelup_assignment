@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Attendance</title>
+  <style>
+    :root { color-scheme: light; --ink:#17212b; --muted:#64748b; --line:#dbe3ea; --blue:#2457c5; --bg:#f4f7fb; }
+    * { box-sizing:border-box } body { margin:0; font:16px/1.5 system-ui,Segoe UI,sans-serif; color:var(--ink); background:var(--bg) }
+    main { max-width:980px; margin:36px auto; padding:0 20px } header { margin-bottom:24px }
+    h1 { margin:0 0 4px; font-size:2rem } .sub { color:var(--muted); margin:0 }
+    .panel { background:white; border:1px solid var(--line); border-radius:14px; padding:20px; margin:16px 0; box-shadow:0 3px 12px #17212b0a }
+    .row { display:flex; gap:12px; align-items:end; flex-wrap:wrap } label { display:block; font-weight:600; margin-bottom:6px }
+    input,button { font:inherit; border-radius:8px; padding:10px 12px } input { border:1px solid #b8c5d1; min-width:210px }
+    button { border:0; background:var(--blue); color:white; cursor:pointer; font-weight:650 } button:hover { filter:brightness(.94) } button.secondary { background:#e8eef7; color:var(--ink) }
+    .summary { display:flex; gap:12px; flex-wrap:wrap; margin-top:14px } .badge { background:#edf3ff; padding:7px 12px; border-radius:99px; font-weight:650 }
+    table { border-collapse:collapse; width:100%; margin-top:10px } th,td { text-align:left; border-bottom:1px solid var(--line); padding:12px 8px } th { color:var(--muted); font-size:.9rem }
+    .actions { display:flex; gap:8px } .actions button { padding:7px 10px } .present { color:#137447; font-weight:700 } .absent { color:#b54708; font-weight:700 } .empty { color:var(--muted); padding:24px 8px; text-align:center }
+    #message { min-height:1.5em; color:#137447; font-weight:600 } .remove { background:#fce8e8!important; color:#9c2727!important }
+    @media(max-width:600px){ main{margin:20px auto} .panel{padding:15px} th:nth-child(1),td:nth-child(1){max-width:130px;overflow-wrap:anywhere} }
+  </style>
+</head>
+<body>
+<main>
+  <header><h1>Student Attendance</h1><p class="sub">Add your class list and record attendance by date.</p></header>
+  <section class="panel" aria-labelledby="add-title">
+    <h2 id="add-title">Add a student</h2>
+    <form id="student-form" class="row"><div><label for="student-name">Student name</label><input id="student-name" required maxlength="80" placeholder="e.g. Asha Patel"></div><button type="submit">Add student</button></form>
+  </section>
+  <section class="panel" aria-labelledby="attendance-title">
+    <div class="row"><div><h2 id="attendance-title">Attendance register</h2><label for="attendance-date">Date</label><input id="attendance-date" type="date"></div><div id="summary" class="summary" aria-live="polite"></div></div>
+    <p id="message" role="status" aria-live="polite"></p>
+    <table><thead><tr><th>Student</th><th>Status</th><th>Mark attendance</th><th></th></tr></thead><tbody id="student-rows"></tbody></table>
+  </section>
+</main>
+<script>
+(() => {
+  const KEY = 'studentAttendance.v1';
+  const today = new Date();
+  const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0,10);
+  const dateInput = document.querySelector('#attendance-date');
+  const body = document.querySelector('#student-rows');
+  const message = document.querySelector('#message');
+  dateInput.value = localDate;
+  let data;
+  try { data = JSON.parse(localStorage.getItem(KEY)) || { students: [], attendance: [] }; }
+  catch { data = { students: [], attendance: [] }; }
+  if (!Array.isArray(data.students) || !Array.isArray(data.attendance)) data = { students: [], attendance: [] };
+  const save = () => localStorage.setItem(KEY, JSON.stringify(data));
+  const escapeHTML = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  function render() {
+    const date = dateInput.value;
+    body.replaceChildren();
+    let present = 0, absent = 0;
+    data.students.forEach(student => {
+      const record = data.attendance.find(item => item.studentId === student.id && item.date === date);
+      if (record?.status === 'Present') present++;
+      if (record?.status === 'Absent') absent++;
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${escapeHTML(student.name)}</td><td class="${record ? record.status.toLowerCase() : ''}">${record ? record.status : 'Not marked'}</td><td><div class="actions"><button type="button" data-status="Present" data-id="${student.id}">Present</button><button type="button" class="secondary" data-status="Absent" data-id="${student.id}">Absent</button></div></td><td><button type="button" class="remove" data-remove="${student.id}" aria-label="Remove ${escapeHTML(student.name)}">Remove</button></td>`;
+      body.append(row);
+    });
+    if (!data.students.length) body.innerHTML = '<tr><td class="empty" colspan="4">No students yet. Add a student above to get started.</td></tr>';
+    document.querySelector('#summary').innerHTML = `<span class="badge">Students: ${data.students.length}</span><span class="badge">Present: ${present}</span><span class="badge">Absent: ${absent}</span><span class="badge">Unmarked: ${data.students.length - present - absent}</span>`;
+  }
+  document.querySelector('#student-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const input = document.querySelector('#student-name');
+    const name = input.value.trim();
+    if (!name) return;
+    if (data.students.some(student => student.name.toLocaleLowerCase() === name.toLocaleLowerCase())) { message.textContent = 'That student is already on the list.'; return; }
+    data.students.push({ id: crypto.randomUUID(), name });
+    save(); input.value = ''; message.textContent = `${name} added.`; render();
+  });
+  dateInput.addEventListener('change', render);
+  body.addEventListener('click', event => {
+    const mark = event.target.closest('button[data-status]');
+    const remove = event.target.closest('button[data-remove]');
+    if (mark) {
+      const { id, status } = mark.dataset, date = dateInput.value;
+      if (!date) { message.textContent = 'Choose a date first.'; return; }
+      const existing = data.attendance.find(item => item.studentId === id && item.date === date);
+      if (existing) existing.status = status;
+      else data.attendance.push({ studentId:id, date, status });
+      save(); message.textContent = `${data.students.find(s => s.id === id)?.name} marked ${status.toLowerCase()} for ${date}.`; render();
+    } else if (remove && confirm('Remove this student and their attendance records?')) {
+      const id = remove.dataset.remove;
+      data.students = data.students.filter(student => student.id !== id);
+      data.attendance = data.attendance.filter(item => item.studentId !== id);
+      save(); message.textContent = 'Student and associated records removed.'; render();
+    }
+  });
+  render();
+})();
+</script>
+</body>
+</html>

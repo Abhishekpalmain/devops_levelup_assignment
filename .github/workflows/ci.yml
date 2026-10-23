@@ -1,0 +1,25 @@
+name: Student Attendance CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  project-check:
+    name: Check project files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Verify required project files
+        run: |
+          test -f index.html
+          test -f README.md
+          test -f KANBAN.md
+          echo "Student Attendance project files are present."
