@@ -4,15 +4,16 @@ Create a Jira Kanban project with these columns: **To Do**, **In Progress**, and
 
 | To Do | In Progress | Done |
 |---|---|---|
-| Add attendance summary/export | Confirm GitHub repository setup and first Actions run | Define basic requirements |
-| Capture final screenshots and complete report | Set up Jira board and add issues | Create project files |
+| Add attendance summary/export | Set up Jira board and add issues | Define basic requirements |
+| Capture final screenshots and complete report |  | Create project files |
 | Improve input validation and accessibility |  | Build attendance app: add students and mark attendance |
+|  |  | Set up GitHub Actions CI and verify successful run |
 
 ## Jira cards to create
 
 1. **Define attendance requirements** — List basic student and attendance needs. — Done
 2. **Build the attendance app** — Add students and mark present/absent for a selected date. — Done
-3. **Set up GitHub Actions CI** — Run a project file check on pushes and pull requests. — In Progress
+3. **Set up GitHub Actions CI** — Run a project file check on pushes and pull requests. — Done (successful run on `main`)
 4. **Create Jira Kanban board** — Use To Do, In Progress, and Done columns and add these issues. — In Progress
 5. **Verify attendance workflow** — Manually demonstrate marking attendance and persistence. — To Do
 6. **Add attendance summary/export** — Extend the selected date report. — To Do
